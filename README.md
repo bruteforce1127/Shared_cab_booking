@@ -135,18 +135,63 @@ Controllers act as facades, hiding service complexity from API consumers.
 
 ## 🛠 Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| **Java 21** | Programming Language |
-| **Spring Boot 3.4.2** | Application Framework |
-| **Spring Data JPA** | Database ORM |
-| **PostgreSQL 17** | Primary Database |
-| **Redis 7** | Caching & Distributed Locks |
-| **Redisson** | Redis Client for Distributed Locking |
-| **Flyway** | Database Migrations |
-| **Lombok** | Boilerplate Reduction |
-| **SpringDoc OpenAPI** | API Documentation |
-| **HikariCP** | Connection Pooling |
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Java** | 21 | Programming Language (LTS) |
+| **Spring Boot** | 3.4.2 | Application Framework |
+| **Spring Data JPA** | 3.4.x | Database ORM & Repository Layer |
+| **Spring Validation** | 3.4.x | Request Validation |
+| **PostgreSQL** | 17 | Primary Relational Database |
+| **Redis** | 7 | Caching & Distributed Locks |
+| **Redisson** | 3.44.0 | Redis Client for Distributed Locking |
+| **Flyway** | 10.x | Database Migration Tool |
+| **Lombok** | 1.18.x | Boilerplate Code Reduction |
+| **SpringDoc OpenAPI** | 2.8.4 | Swagger API Documentation |
+| **HikariCP** | 5.x | High-Performance Connection Pooling |
+| **Jackson** | 2.18.x | JSON Serialization/Deserialization |
+| **Maven** | 3.8+ | Build & Dependency Management |
+
+---
+
+## 📝 Assumptions
+
+The following assumptions have been made during the development of this system:
+
+### Business Assumptions
+
+| # | Assumption |
+|---|------------|
+| 1 | All rides are **airport transfers** (city to airport or airport to city) |
+| 2 | Passengers book rides **in advance** (at least 30 minutes before pickup) |
+| 3 | **Maximum 4-8 passengers** can share a ride depending on cab type |
+| 4 | All passengers in a shared ride have the **same destination** (airport) |
+| 5 | **Detour tolerance** is configurable per passenger (default: 20% extra travel time) |
+| 6 | **Surge pricing** is calculated based on current active bookings in the system |
+| 7 | **Cancellation** is free if done more than 10 minutes before pickup |
+
+### Technical Assumptions
+
+| # | Assumption |
+|---|------------|
+| 1 | **PostgreSQL** and **Redis** are running locally on default ports |
+| 2 | All **coordinates** are in WGS84 format (latitude/longitude) |
+| 3 | **Distance calculations** use Haversine formula (~0.5% accuracy) |
+| 4 | **Time zone** is IST (Asia/Kolkata) for all timestamps |
+| 5 | **Optimistic locking** handles concurrent booking conflicts |
+| 6 | **Redis** is used for distributed locks (10-second TTL) |
+| 7 | **Flyway** auto-migrates database schema on application startup |
+| 8 | All API responses follow a **standard JSON envelope** format |
+
+### Constraints
+
+| Constraint | Value |
+|------------|-------|
+| Max passengers per cab | 4-8 (based on cab type) |
+| Max luggage weight | 100-200 kg (based on cab type) |
+| Max detour tolerance | 50% |
+| Booking window | 30 minutes to 7 days in advance |
+| Time window for matching | ±15 minutes |
+| Proximity radius for matching | 5 km |
 
 ---
 
@@ -408,6 +453,241 @@ curl -X POST http://localhost:8080/bookings/cancel \
     "reason": "Change of plans",
     "initiatedBy": "PASSENGER"
   }'
+```
+
+---
+
+## 📊 Sample Test Data
+
+Use the following sample data to quickly test the application. All data is designed for the Delhi NCR region.
+
+### Sample Passengers
+
+**Passenger 1 - Regular Commuter:**
+```json
+{
+    "name": "Rahul Sharma",
+    "email": "rahul.sharma@example.com",
+    "phone": "+919876543210",
+    "detourTolerance": 0.20,
+    "preferredCabType": "SEDAN"
+}
+```
+
+**Passenger 2 - Business Traveler:**
+```json
+{
+    "name": "Priya Gupta",
+    "email": "priya.gupta@example.com",
+    "phone": "+919876543211",
+    "detourTolerance": 0.15,
+    "preferredCabType": "PREMIUM_SEDAN"
+}
+```
+
+**Passenger 3 - Family Traveler:**
+```json
+{
+    "name": "Amit Kumar",
+    "email": "amit.kumar@example.com",
+    "phone": "+919876543212",
+    "detourTolerance": 0.25,
+    "preferredCabType": "SUV"
+}
+```
+
+**Passenger 4 - Budget Traveler:**
+```json
+{
+    "name": "Sneha Patel",
+    "email": "sneha.patel@example.com",
+    "phone": "+919876543213",
+    "detourTolerance": 0.30,
+    "preferredCabType": "SEDAN"
+}
+```
+
+### Sample Cabs
+
+**Cab 1 - SEDAN near Connaught Place:**
+```json
+{
+    "licensePlate": "DL-01-AB-1234",
+    "driverName": "Rajesh Kumar",
+    "driverPhone": "+919876543220",
+    "cabType": "SEDAN",
+    "currentLatitude": 28.6139,
+    "currentLongitude": 77.2090,
+    "currentAddress": "Connaught Place, New Delhi"
+}
+```
+
+**Cab 2 - SUV near India Gate:**
+```json
+{
+    "licensePlate": "DL-02-CD-5678",
+    "driverName": "Suresh Singh",
+    "driverPhone": "+919876543221",
+    "cabType": "SUV",
+    "currentLatitude": 28.6129,
+    "currentLongitude": 77.2295,
+    "currentAddress": "India Gate, New Delhi"
+}
+```
+
+**Cab 3 - PREMIUM_SEDAN near Karol Bagh:**
+```json
+{
+    "licensePlate": "DL-03-EF-9012",
+    "driverName": "Vikram Yadav",
+    "driverPhone": "+919876543222",
+    "cabType": "PREMIUM_SEDAN",
+    "currentLatitude": 28.6514,
+    "currentLongitude": 77.1907,
+    "currentAddress": "Karol Bagh, New Delhi"
+}
+```
+
+**Cab 4 - VAN near Nehru Place:**
+```json
+{
+    "licensePlate": "DL-04-GH-3456",
+    "driverName": "Manoj Verma",
+    "driverPhone": "+919876543223",
+    "cabType": "VAN",
+    "currentLatitude": 28.5491,
+    "currentLongitude": 77.2533,
+    "currentAddress": "Nehru Place, New Delhi"
+}
+```
+
+### Sample Ride Bookings
+
+**Booking 1 - Connaught Place to Airport:**
+```json
+{
+    "passengerId": 1,
+    "pickupLatitude": 28.6139,
+    "pickupLongitude": 77.2090,
+    "pickupAddress": "Connaught Place, New Delhi",
+    "dropoffLatitude": 28.5562,
+    "dropoffLongitude": 77.1000,
+    "dropoffAddress": "IGI Airport Terminal 3",
+    "requestedPickupTime": "2026-02-20T10:00:00",
+    "passengerCount": 1,
+    "luggageWeightKg": 15.0,
+    "luggageCount": 2,
+    "maxDetourTolerance": 0.20,
+    "preferredCabType": "SEDAN"
+}
+```
+
+**Booking 2 - India Gate to Airport (can be pooled with Booking 1):**
+```json
+{
+    "passengerId": 2,
+    "pickupLatitude": 28.6129,
+    "pickupLongitude": 77.2295,
+    "pickupAddress": "India Gate, New Delhi",
+    "dropoffLatitude": 28.5562,
+    "dropoffLongitude": 77.1000,
+    "dropoffAddress": "IGI Airport Terminal 3",
+    "requestedPickupTime": "2026-02-20T10:10:00",
+    "passengerCount": 1,
+    "luggageWeightKg": 20.0,
+    "luggageCount": 1,
+    "maxDetourTolerance": 0.20,
+    "preferredCabType": "SEDAN"
+}
+```
+
+**Booking 3 - Karol Bagh to Airport (Family with SUV):**
+```json
+{
+    "passengerId": 3,
+    "pickupLatitude": 28.6514,
+    "pickupLongitude": 77.1907,
+    "pickupAddress": "Karol Bagh, New Delhi",
+    "dropoffLatitude": 28.5562,
+    "dropoffLongitude": 77.1000,
+    "dropoffAddress": "IGI Airport Terminal 3",
+    "requestedPickupTime": "2026-02-20T11:00:00",
+    "passengerCount": 3,
+    "luggageWeightKg": 45.0,
+    "luggageCount": 4,
+    "maxDetourTolerance": 0.25,
+    "preferredCabType": "SUV",
+    "specialRequirements": "Need child seat"
+}
+```
+
+**Booking 4 - Nehru Place to Airport:**
+```json
+{
+    "passengerId": 4,
+    "pickupLatitude": 28.5491,
+    "pickupLongitude": 77.2533,
+    "pickupAddress": "Nehru Place, New Delhi",
+    "dropoffLatitude": 28.5562,
+    "dropoffLongitude": 77.1000,
+    "dropoffAddress": "IGI Airport Terminal 3",
+    "requestedPickupTime": "2026-02-20T14:00:00",
+    "passengerCount": 2,
+    "luggageWeightKg": 30.0,
+    "luggageCount": 3,
+    "maxDetourTolerance": 0.30,
+    "preferredCabType": "SEDAN"
+}
+```
+
+### Sample Fare Estimate Request
+
+```json
+{
+    "passengerId": 1,
+    "pickupLatitude": 28.6139,
+    "pickupLongitude": 77.2090,
+    "pickupAddress": "Connaught Place, New Delhi",
+    "dropoffLatitude": 28.5562,
+    "dropoffLongitude": 77.1000,
+    "dropoffAddress": "IGI Airport Terminal 3",
+    "requestedPickupTime": "2026-02-20T14:00:00",
+    "passengerCount": 1,
+    "luggageWeightKg": 15.0,
+    "luggageCount": 2,
+    "maxDetourTolerance": 0.20,
+    "preferredCabType": "SEDAN"
+}
+```
+
+### Sample Cancellation Request
+
+```json
+{
+    "bookingId": 1,
+    "reason": "Flight rescheduled",
+    "initiatedBy": "PASSENGER"
+}
+```
+
+### Quick Setup Script (PowerShell)
+
+Run these commands sequentially to set up test data:
+
+```powershell
+# Register Passengers
+Invoke-RestMethod -Uri "http://localhost:8080/passengers" -Method POST -ContentType "application/json" -Body '{"name":"Rahul Sharma","email":"rahul@example.com","phone":"+919876543210","detourTolerance":0.20,"preferredCabType":"SEDAN"}'
+
+Invoke-RestMethod -Uri "http://localhost:8080/passengers" -Method POST -ContentType "application/json" -Body '{"name":"Priya Gupta","email":"priya@example.com","phone":"+919876543211","detourTolerance":0.15,"preferredCabType":"SEDAN"}'
+
+# Register Cabs
+Invoke-RestMethod -Uri "http://localhost:8080/cabs" -Method POST -ContentType "application/json" -Body '{"licensePlate":"DL-01-AB-1234","driverName":"Rajesh Kumar","driverPhone":"+919876543220","cabType":"SEDAN","currentLatitude":28.6139,"currentLongitude":77.2090,"currentAddress":"Connaught Place"}'
+
+Invoke-RestMethod -Uri "http://localhost:8080/cabs" -Method POST -ContentType "application/json" -Body '{"licensePlate":"DL-02-CD-5678","driverName":"Suresh Singh","driverPhone":"+919876543221","cabType":"SUV","currentLatitude":28.6129,"currentLongitude":77.2295,"currentAddress":"India Gate"}'
+
+# Verify Data
+Invoke-RestMethod -Uri "http://localhost:8080/passengers" -Method GET
+Invoke-RestMethod -Uri "http://localhost:8080/cabs" -Method GET
 ```
 
 ---

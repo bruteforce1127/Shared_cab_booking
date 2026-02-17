@@ -939,10 +939,4 @@ Operations:
 3. **Distributed Locks**: Martin Kleppmann. "Designing Data-Intensive Applications"
 4. **Chain of Responsibility**: Gang of Four. "Design Patterns"
 
----
 
-## 📄 Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | Feb 2026 | Initial algorithm documentation |
